@@ -9,6 +9,7 @@ import cn.nukkit.event.EventHandler;
 import cn.nukkit.event.Listener;
 import cn.nukkit.event.player.PlayerMoveEvent;
 import cn.nukkit.plugin.PluginBase;
+import cn.nukkit.scheduler.Task;
 import cn.nukkit.math.Vector3;
 
 import java.util.HashMap;
@@ -30,31 +31,34 @@ public class GravityPush extends PluginBase implements Listener {
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
 
-        // detects the block
         Block currentBlock = player.getLevel().getBlock(player.floor());
-
-        // last block
         Block previousBlock = lastBlock.getOrDefault(uuid, null);
-
-        // tries to push the player
         lastBlock.put(uuid, currentBlock);
 
-        // if succes stop the plugin
         if (previousBlock == null || !previousBlock.equals(currentBlock)) {
             pushAttempts.put(uuid, 0);
         }
 
-        // detects if the player is on sand
         if (isGravityBlock(currentBlock) && player.y < currentBlock.getY() + 1) {
             int attempts = pushAttempts.getOrDefault(uuid, 0);
 
             if (attempts < 3) {
-                // push the player
-                Vector3 velocity = player.getMotion().add(0, 0.5, 0);
-                player.setMotion(velocity);
-
-                // tries 3 times
                 pushAttempts.put(uuid, attempts + 1);
+
+                // 🔹 Paso 1: Impulso inicial con setMotion()
+                Vector3 motion = player.getMotion().add(0, 0.15, 0);
+                player.setMotion(motion);
+
+                // 🔹 Paso 2 y 3: Teletransportes suaves para asegurar posición
+                for (int i = 1; i <= 2; i++) {
+                    final int step = i;
+                    getServer().getScheduler().scheduleDelayedTask(this, () -> {
+                        if (player.isOnline()) {
+                            Vector3 targetPos = player.getLocation().add(0, 0.35 * step, 0);
+                            player.teleport(targetPos);
+                        }
+                    }, i); // i ticks de delay entre cada teletransporte
+                }
             }
         }
     }
