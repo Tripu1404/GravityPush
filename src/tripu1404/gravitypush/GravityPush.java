@@ -9,7 +9,7 @@ import cn.nukkit.event.EventHandler;
 import cn.nukkit.event.Listener;
 import cn.nukkit.event.player.PlayerMoveEvent;
 import cn.nukkit.plugin.PluginBase;
-import cn.nukkit.scheduler.Task;
+import cn.nukkit.scheduler.Task; // Aunque no se usa directamente Task, se usa scheduleDelayedTask
 import cn.nukkit.math.Vector3;
 
 import java.util.HashMap;
@@ -42,22 +42,33 @@ public class GravityPush extends PluginBase implements Listener {
         if (isGravityBlock(currentBlock) && player.y < currentBlock.getY() + 1) {
             int attempts = pushAttempts.getOrDefault(uuid, 0);
 
-            if (attempts < 3) {
+            // Aumentamos los intentos permitidos para distribuir mejor el empujón
+            if (attempts < 5) { 
                 pushAttempts.put(uuid, attempts + 1);
 
-                // 🔹 Paso 1: Impulso inicial con setMotion()
-                Vector3 motion = player.getMotion().add(0, 0.15, 0);
+                // 🔹 Paso 1: Impulso inicial más suave con setMotion()
+                // Se usa como un "detonador" de movimiento hacia arriba.
+                Vector3 motion = player.getMotion().add(0, 0.1, 0); // Reducimos el impulso inicial
                 player.setMotion(motion);
 
-                // 🔹 Paso 2 y 3: Teletransportes suaves para asegurar posición
-                for (int i = 1; i <= 2; i++) {
+                // 🔹 Paso 2: Teletransportes suaves y divididos en 4 pasos
+                // Se levanta al jugador aproximadamente 0.72 unidades en 4 pasos,
+                // haciendo que el movimiento se sienta más como una aceleración.
+                final double TELEPORT_INCREMENT = 0.18; // Incremento más pequeño por paso
+                final int TOTAL_STEPS = 4; // Más pasos
+
+                for (int i = 1; i <= TOTAL_STEPS; i++) {
                     final int step = i;
                     getServer().getScheduler().scheduleDelayedTask(this, () -> {
                         if (player.isOnline()) {
-                            Vector3 targetPos = player.getLocation().add(0, 0.35 * step, 0);
+                            // La posición objetivo se calcula usando el incremento. 
+                            // Nota: La fórmula debe ser aditiva (0.18, 0.36, 0.54, 0.72) si se quiere un aumento total,
+                            // o solo el incremento para el paso actual si se acumula en el tiempo.
+                            // Mantendremos la estructura de Nukkit que suma al paso actual:
+                            Vector3 targetPos = player.getLocation().add(0, TELEPORT_INCREMENT, 0);
                             player.teleport(targetPos);
                         }
-                    }, i); // i ticks de delay entre cada teletransporte
+                    }, i); // i ticks de delay: 1, 2, 3 y 4 ticks de diferencia
                 }
             }
         }
