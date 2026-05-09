@@ -9,7 +9,7 @@ import cn.nukkit.event.EventHandler;
 import cn.nukkit.event.Listener;
 import cn.nukkit.event.player.PlayerMoveEvent;
 import cn.nukkit.plugin.PluginBase;
-import cn.nukkit.scheduler.Task; // Aunque no se usa directamente Task, se usa scheduleDelayedTask
+import cn.nukkit.scheduler.Task; // Aunque no se usa directamente Task, se usa scheduleDelaydTask
 import cn.nukkit.math.Vector3;
 
 import java.util.HashMap;
